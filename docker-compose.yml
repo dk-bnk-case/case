@@ -1,0 +1,50 @@
+version: '3.4'
+
+services:
+  client:
+    image: consoleclient:latest
+    depends_on: 
+      - "webapi"
+    build:
+      context: ./consoleclient/
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    networks:
+      - webapi-dev
+      
+  webapi:
+    image: webapi:latest
+    depends_on:
+      - "postgres_image"
+    build:
+      context: ./webapi/
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      DB_CONNECTION_STRING: "host=postgres_image;port=5432;database=municipalitydb;username=municipalityuser;password=municipalityuser"
+    networks:
+      - webapi-dev  
+  
+  postgres_image:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - db_volume:/var/lib/postgresql/data
+      - ./dbscripts/seed.sql :/docker-entrypoint-initdb.d/seed.sql
+    environment:
+      POSTGRES_USER: "municipalityuser"
+      POSTGRES_PASSWORD: "municipalityuser"
+      POSTGRES_DB: "municipalitydb"
+    networks:
+      - webapi-dev
+
+networks:
+  webapi-dev:
+    driver: bridge 
+
+volumes:
+  db_volume:
